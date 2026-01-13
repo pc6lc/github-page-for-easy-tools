@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="../styles/main.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body>
     <div class="container">
         <div class="nav-header">
@@ -19,38 +21,37 @@
         <main>
             <div class="alert alert-info" style="margin-bottom: 2rem;">
                 <i class="fas fa-info-circle"></i>
-                <strong>演示版本说明：</strong> 由于浏览器CORS限制，此工具当前生成演示短链接以展示功能。实际部署时可配置后端代理或API密钥来访问真实的短链接服务。
+                <strong>Demo Version:</strong> Due to browser CORS restrictions, this tool currently generates demo
+                short links to showcase functionality. In production, configure a backend proxy or API keys for real
+                short link services.
             </div>
 
             <div class="form-group">
                 <label for="originalUrl">Enter URL to shorten:</label>
-                <input 
-                    type="url" 
-                    id="originalUrl" 
-                    class="form-control" 
-                    placeholder="https://example.com/very/long/url/that/needs/shortening"
-                >
+                <input type="url" id="originalUrl" class="form-control"
+                    placeholder="https://example.com/very/long/url/that/needs/shortening">
             </div>
 
             <div class="form-group">
                 <label for="serviceSelect">Choose shortening service:</label>
                 <select id="serviceSelect" class="form-control">
-                    <option value="tinyurl">TinyURL (Free, No registration)</option>
-                    <option value="isgd">is.gd (Free, No registration)</option>
-                    <option value="vgd">v.gd (Free, No registration)</option>
-                    <option value="tly">t.ly (Free, 1000/month)</option>
+                    <option value="tinyurl">TinyURL (Free, No account)</option>
+                    <option value="isgd">is.gd (Free, No account)</option>
+                    <option value="vgd">v.gd (Free, No account)</option>
+                    <option value="tly">t.ly (Requires API Key)</option>
                 </select>
+            </div>
+
+            <div class="form-group" id="apiTokenGroup" style="display: none;">
+                <label for="apiToken">API Token (Required for this service):</label>
+                <input type="password" id="apiToken" class="form-control" placeholder="Enter your API token">
+                <small style="color: var(--text-secondary);">Get your token from the service provider's
+                    dashboard</small>
             </div>
 
             <div class="form-group" id="customAliasGroup" style="display: none;">
                 <label for="customAlias">Custom alias (optional):</label>
-                <input 
-                    type="text" 
-                    id="customAlias" 
-                    class="form-control" 
-                    placeholder="mycustomlink"
-                    maxlength="30"
-                >
+                <input type="text" id="customAlias" class="form-control" placeholder="mycustomlink" maxlength="30">
                 <small style="color: var(--text-secondary);">Only available for some services</small>
             </div>
 
@@ -86,6 +87,8 @@
                 this.serviceSelect = document.getElementById('serviceSelect');
                 this.customAlias = document.getElementById('customAlias');
                 this.customAliasGroup = document.getElementById('customAliasGroup');
+                this.apiToken = document.getElementById('apiToken');
+                this.apiTokenGroup = document.getElementById('apiTokenGroup');
                 this.shortenBtn = document.getElementById('shortenBtn');
                 this.clearBtn = document.getElementById('clearBtn');
                 this.resultSection = document.getElementById('resultSection');
@@ -94,13 +97,14 @@
 
                 this.bindEvents();
                 this.addStyles();
+                this.toggleServiceFields(); // Initial state check
             }
 
             addStyles() {
                 if (!document.getElementById('shortener-styles')) {
                     const style = document.createElement('style');
                     style.id = 'shortener-styles';
-                    style.textContent = \`
+                    style.textContent = `
                         .url-result {
                             margin-bottom: 1rem;
                             padding: 1rem;
@@ -163,7 +167,7 @@
                             opacity: 0.6;
                             pointer-events: none;
                         }
-                    \`;
+                    `;
                     document.head.appendChild(style);
                 }
             }
@@ -171,8 +175,8 @@
             bindEvents() {
                 this.shortenBtn.addEventListener('click', () => this.shortenUrl());
                 this.clearBtn.addEventListener('click', () => this.clearAll());
-                this.serviceSelect.addEventListener('change', () => this.toggleCustomAlias());
-                
+                this.serviceSelect.addEventListener('change', () => this.toggleServiceFields());
+
                 this.originalUrl.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') {
                         this.shortenUrl();
@@ -180,14 +184,24 @@
                 });
             }
 
-            toggleCustomAlias() {
+            toggleServiceFields() {
                 const service = this.serviceSelect.value;
-                // Only TinyURL and t.ly support custom aliases in this implementation
-                if (service === 'tinyurl' || service === 'tly') {
+
+                // Custom Alias visibility
+                if (service === 'tinyurl' || service === 'tly' || service === 'isgd' || service === 'vgd') {
+                    // is.gd/v.gd support custom aliases too
                     this.customAliasGroup.style.display = 'block';
                 } else {
                     this.customAliasGroup.style.display = 'none';
                     this.customAlias.value = '';
+                }
+
+                // API Token visibility
+                if (service === 'tly') {
+                    this.apiTokenGroup.style.display = 'block';
+                } else {
+                    this.apiTokenGroup.style.display = 'none';
+                    this.apiToken.value = '';
                 }
             }
 
@@ -195,85 +209,135 @@
                 const url = this.originalUrl.value.trim();
                 const service = this.serviceSelect.value;
                 const customAlias = this.customAlias.value.trim();
-                
+                const apiToken = this.apiToken.value.trim();
+
+                console.log('Shorten URL clicked:', url, service);
+
                 if (!url) {
-                    this.showAlert('请输入要缩短的URL', 'error');
+                    this.showAlert('Please enter a URL to shorten', 'error');
                     return;
                 }
 
                 if (!this.isValidUrl(url)) {
-                    this.showAlert('请输入有效的URL（包含http://或https://）', 'error');
+                    this.showAlert('Please enter a valid URL (must include http:// or https://)', 'error');
+                    return;
+                }
+
+                if (service === 'tly' && !apiToken) {
+                    this.showAlert('API Token is required for t.ly', 'error');
                     return;
                 }
 
                 // Show loading state
                 this.shortenBtn.classList.add('loading');
-                this.shortenBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 缩短中...';
+                this.shortenBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Shortening...';
 
                 try {
-                    const shortUrl = await this.callShortenAPI(service, url, customAlias);
+                    const shortUrl = await this.callShortenAPI(service, url, customAlias, apiToken);
+                    console.log('Generated short URL:', shortUrl);
                     this.displayResult(service, url, shortUrl);
-                    this.showAlert('短链接生成成功！', 'success');
+                    this.showAlert('Short link generated successfully!', 'success');
                 } catch (error) {
-                    this.showAlert('生成短链接失败: ' + error.message, 'error');
+                    console.error('Error:', error);
+                    this.showAlert('Failed to generate short link: ' + error.message, 'error');
                 } finally {
                     this.shortenBtn.classList.remove('loading');
-                    this.shortenBtn.innerHTML = '<i class="fas fa-magic"></i> 缩短URL';
+                    this.shortenBtn.innerHTML = '<i class="fas fa-magic"></i> Shorten URL';
                 }
             }
 
-            async callShortenAPI(service, url, customAlias = '') {
+            async callShortenAPI(service, url, customAlias = '', apiToken = '') {
                 switch (service) {
                     case 'tinyurl':
                         return await this.shortenWithTinyURL(url, customAlias);
                     case 'isgd':
-                        return await this.shortenWithQRServer(url, 'is.gd');
+                        return await this.shortenWithIsGd(url, customAlias, 'is.gd');
                     case 'vgd':
-                        return await this.shortenWithQRServer(url, 'v.gd');
+                        return await this.shortenWithIsGd(url, customAlias, 'v.gd');
                     case 'tly':
-                        return await this.shortenWithQRServer(url, 't.ly');
+                        return await this.shortenWithTLy(url, customAlias, apiToken);
                     default:
-                        throw new Error('不支持的服务');
+                        throw new Error('Unsupported service');
                 }
             }
 
             async shortenWithTinyURL(url, customAlias = '') {
-                try {
-                    // Use a CORS proxy for TinyURL
-                    const apiUrl = customAlias ? 
-                        `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}&alias=${encodeURIComponent(customAlias)}`)}` :
-                        `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`)}`;
-                    
-                    const response = await fetch(apiUrl);
-                    const shortUrl = await response.text();
-                    
-                    if (shortUrl.includes('Error') || shortUrl.includes('already exists') || !shortUrl.includes('tinyurl.com')) {
-                        throw new Error('TinyURL API调用失败');
-                    }
-                    
-                    return shortUrl.trim();
-                } catch (error) {
-                    // Fallback: Generate a mock short URL using QR Server
-                    return this.generateMockShortUrl(url, 'tinyurl.com');
+                // TinyURL via AllOrigins proxy
+                const apiUrl = customAlias ?
+                    `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}&alias=${encodeURIComponent(customAlias)}`)}` :
+                    `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`)}`;
+
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error('Network response was not ok');
+
+                const shortUrl = await response.text();
+
+                if (shortUrl.includes('Error') || !shortUrl.startsWith('http')) {
+                    throw new Error(shortUrl || 'TinyURL API failed');
                 }
+
+                return shortUrl.trim();
             }
 
-            async shortenWithQRServer(url, serviceName) {
-                // Since direct API calls fail due to CORS, we'll generate mock URLs
-                // that demonstrate the functionality
-                return this.generateMockShortUrl(url, serviceName);
+            async shortenWithIsGd(url, customAlias = '', domain = 'is.gd') {
+                // is.gd / v.gd via AllOrigins proxy
+                // API: https://is.gd/create.php?format=simple&url=...&shorturl=...
+                let apiEndpoint = `https://${domain}/create.php?format=simple&url=${encodeURIComponent(url)}`;
+                if (customAlias) {
+                    apiEndpoint += `&shorturl=${encodeURIComponent(customAlias)}`;
+                }
+
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiEndpoint)}`;
+
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error('Network response was not ok');
+
+                const shortUrl = await response.text();
+
+                if (shortUrl.includes('Error') || !shortUrl.startsWith('http')) {
+                    throw new Error(shortUrl || `${domain} API failed`);
+                }
+
+                return shortUrl.trim();
             }
 
-            generateMockShortUrl(originalUrl, service) {
-                // Generate a realistic-looking short URL for demonstration
-                const hash = this.simpleHash(originalUrl).substring(0, 6);
-                const serviceUrls = {
-                    'is.gd': `https://is.gd/${hash}`,
-                    'v.gd': `https://v.gd/${hash}`,
-                    't.ly': `https://t.ly/${hash}`,
-                    'tinyurl.com': `https://tinyurl.com/${hash}`
+            async shortenWithTLy(url, customAlias = '', apiToken) {
+                // t.ly API (POST request)
+                // Cannot easily use AllOrigins for POST, so we'll try direct fetch.
+                // If it fails due to CORS, user needs a CORS plugin or backend.
+                // However, t.ly might support CORS? Let's check docs or try.
+                // Assuming we might need to use a different proxy or hope for the best.
+                // Actually, standard proxies like cors-anywhere are better for POST, but allorigins only does GET.
+                // For this demo, we will try direct. If it fails, we warn.
+
+                const headers = {
+                    'Authorization': `Bearer ${apiToken}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 };
-                return serviceUrls[service] || `https://short.ly/${hash}`;
+
+                const body = {
+                    long_url: url,
+                    domain: "https://t.ly/"
+                };
+
+                if (customAlias) {
+                    body.custom_url = customAlias;
+                }
+
+                const response = await fetch('https://t.ly/api/v1/link/shorten', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(body)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 't.ly API failed');
+                }
+
+                return data.short_url;
             }
 
             simpleHash(str) {
@@ -289,30 +353,30 @@
             displayResult(service, originalUrl, shortUrl) {
                 const resultDiv = document.createElement('div');
                 resultDiv.className = 'url-result';
-                resultDiv.innerHTML = \`
+                resultDiv.innerHTML = `
                     <div class="url-info">
-                        <span>\${this.getServiceName(service)}</span>
-                        <span style="font-size: 0.9rem; color: var(--text-secondary);">\${new Date().toLocaleString()}</span>
+                        <span>${this.getServiceName(service)}</span>
+                        <span style="font-size: 0.9rem; color: var(--text-secondary);">${new Date().toLocaleString()}</span>
                     </div>
-                    <div class="short-url" onclick="urlShortener.copyToClipboard('\${shortUrl}')">\${shortUrl}</div>
+                    <div class="short-url" onclick="urlShortener.copyToClipboard('${shortUrl}')">${shortUrl}</div>
                     <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
-                        原始链接: \${originalUrl.length > 50 ? originalUrl.substring(0, 50) + '...' : originalUrl}
+                        Original URL: ${originalUrl.length > 50 ? originalUrl.substring(0, 50) + '...' : originalUrl}
                     </div>
                     <div style="font-size: 0.8rem; color: var(--warning-color); margin-bottom: 0.5rem;">
-                        <i class="fas fa-info-circle"></i> 注意：这是演示版本，生成的短链接仅用于展示格式，实际部署时需要配置真实的API密钥
+                        <i class="fas fa-info-circle"></i> Note: Using real API. Ensure CORS is supported or allowed if using a proxy.
                     </div>
                     <div class="url-actions">
-                        <button class="action-btn" onclick="urlShortener.copyToClipboard('\${shortUrl}')">
-                            <i class="fas fa-copy"></i> 复制
+                        <button class="action-btn" onclick="urlShortener.copyToClipboard('${shortUrl}')">
+                            <i class="fas fa-copy"></i> Copy
                         </button>
-                        <button class="action-btn secondary" onclick="urlShortener.previewUrl('\${originalUrl}')">
-                            <i class="fas fa-external-link-alt"></i> 打开原链接
+                        <button class="action-btn secondary" onclick="urlShortener.previewUrl('${originalUrl}')">
+                            <i class="fas fa-external-link-alt"></i> Open Original
                         </button>
-                        <button class="action-btn secondary" onclick="urlShortener.generateQR('\${shortUrl}')">
-                            <i class="fas fa-qrcode"></i> 生成二维码
+                        <button class="action-btn secondary" onclick="urlShortener.generateQR('${shortUrl}')">
+                            <i class="fas fa-qrcode"></i> Generate QR
                         </button>
                     </div>
-                \`;
+                `;
 
                 this.shortUrlResults.insertBefore(resultDiv, this.shortUrlResults.firstChild);
                 this.resultSection.classList.remove('hidden');
@@ -335,14 +399,14 @@
 
             generateQR(url) {
                 // Open QR generator with the short URL
-                const qrUrl = \`qr-generator.html?text=\${encodeURIComponent(url)}\`;
+                const qrUrl = `qr-generator.html?text=${encodeURIComponent(url)}`;
                 window.open(qrUrl, '_blank');
             }
 
             async copyToClipboard(text) {
                 try {
                     await navigator.clipboard.writeText(text);
-                    this.showAlert('链接已复制到剪贴板！', 'success');
+                    this.showAlert('Link copied to clipboard!', 'success');
                 } catch (err) {
                     // Fallback for browsers that don't support clipboard API
                     const textArea = document.createElement('textarea');
@@ -351,7 +415,7 @@
                     textArea.select();
                     document.execCommand('copy');
                     document.body.removeChild(textArea);
-                    this.showAlert('链接已复制到剪贴板！', 'success');
+                    this.showAlert('Link copied to clipboard!', 'success');
                 }
             }
 
@@ -367,6 +431,7 @@
             clearAll() {
                 this.originalUrl.value = '';
                 this.customAlias.value = '';
+                this.apiToken.value = '';
                 this.shortUrlResults.innerHTML = '';
                 this.resultSection.classList.add('hidden');
                 this.clearAlerts();
@@ -374,13 +439,13 @@
 
             showAlert(message, type = 'info') {
                 this.clearAlerts();
-                
+
                 const alert = document.createElement('div');
-                alert.className = \`alert alert-\${type}\`;
-                alert.innerHTML = \`<i class="fas fa-\${this.getAlertIcon(type)}"></i> \${message}\`;
-                
+                alert.className = `alert alert-${type}`;
+                alert.innerHTML = `<i class="fas fa-${this.getAlertIcon(type)}"></i> ${message}`;
+
                 this.alertContainer.appendChild(alert);
-                
+
                 if (type === 'success' || type === 'info') {
                     setTimeout(() => {
                         if (alert.parentNode) {
@@ -410,4 +475,5 @@
         });
     </script>
 </body>
+
 </html>
