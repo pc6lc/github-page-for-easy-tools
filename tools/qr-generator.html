@@ -208,173 +208,179 @@
                 };
             }
 
+            clearAll() {
+                this.textInput.value = '';
+                this.qrCodeContainer.innerHTML = '';
+                this.qrResult.classList.add('hidden');
+                this.shareResult.classList.add('hidden');
+                this.shareUrl.textContent = '';
                 this.shortShareUrl.textContent = '';
-        this.shortUrlContainer.classList.add('hidden');
+                this.shortUrlContainer.classList.add('hidden');
             }
 
-        testViewer() {
-            const url = this.shareUrl.textContent;
-            if (!url) {
-                alert('Please generate a QR code first');
-                return;
-            }
-            window.open(url, '_blank');
-        }
-
-        downloadQR() {
-            const img = this.qrCodeContainer.querySelector('img');
-            if (!img) {
-                alert('No QR code to download. Please generate a QR code first.');
-                return;
+            testViewer() {
+                const url = this.shareUrl.textContent;
+                if (!url) {
+                    alert('Please generate a QR code first');
+                    return;
+                }
+                window.open(url, '_blank');
             }
 
-            // Create download link
-            const link = document.createElement('a');
-            link.download = 'qrcode.png';
-            link.href = img.src;
-            link.target = '_blank';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            downloadQR() {
+                const img = this.qrCodeContainer.querySelector('img');
+                if (!img) {
+                    alert('No QR code to download. Please generate a QR code first.');
+                    return;
+                }
 
-            this.showAlert('QR code download started!', 'success');
-        }
+                // Create download link
+                const link = document.createElement('a');
+                link.download = 'qrcode.png';
+                link.href = img.src;
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
 
-        generateShareableLink() {
-            const text = this.textInput.value.trim();
-            if (!text) {
-                alert('Please generate a QR code first');
-                return;
+                this.showAlert('QR code download started!', 'success');
             }
 
-            // Create a shareable URL that will display the content
-            const encodedText = encodeURIComponent(text);
-            const baseUrl = window.location.origin + window.location.pathname.replace('qr-generator.html', '');
-            const shareableUrl = `${baseUrl}viewer.html?content=${encodedText}`;
+            generateShareableLink() {
+                const text = this.textInput.value.trim();
+                if (!text) {
+                    alert('Please generate a QR code first');
+                    return;
+                }
 
-            this.shareUrl.textContent = shareableUrl;
-            this.shareResult.classList.remove('hidden');
+                // Create a shareable URL that will display the content
+                const encodedText = encodeURIComponent(text);
+                const baseUrl = window.location.origin + window.location.pathname.replace('qr-generator.html', '');
+                const shareableUrl = `${baseUrl}viewer.html?content=${encodedText}`;
 
-            this.showAlert('Shareable link generated! The QR code will open this URL.', 'info');
-        }
+                this.shareUrl.textContent = shareableUrl;
+                this.shareResult.classList.remove('hidden');
+
+                this.showAlert('Shareable link generated! The QR code will open this URL.', 'info');
+            }
 
             async copyToClipboard(text) {
-            try {
-                await navigator.clipboard.writeText(text);
-                this.showAlert('URL copied to clipboard!', 'success');
-            } catch (err) {
-                // Fallback for browsers that don't support clipboard API
-                const textArea = document.createElement('textarea');
-                textArea.value = text;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                this.showAlert('URL copied to clipboard!', 'success');
+                try {
+                    await navigator.clipboard.writeText(text);
+                    this.showAlert('URL copied to clipboard!', 'success');
+                } catch (err) {
+                    // Fallback for browsers that don't support clipboard API
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    this.showAlert('URL copied to clipboard!', 'success');
+                }
             }
-        }
 
-        showAlert(message, type = 'info') {
-            // Simple alert implementation
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type}`;
-            alertDiv.innerHTML = `<i class="fas fa-${this.getAlertIcon(type)}"></i> ${message}`;
-            alertDiv.style.margin = '1rem 0';
+            showAlert(message, type = 'info') {
+                // Simple alert implementation
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type}`;
+                alertDiv.innerHTML = `<i class="fas fa-${this.getAlertIcon(type)}"></i> ${message}`;
+                alertDiv.style.margin = '1rem 0';
 
-            // Remove existing alerts
-            const existingAlerts = this.qrResult.querySelectorAll('.alert');
-            existingAlerts.forEach(alert => alert.remove());
+                // Remove existing alerts
+                const existingAlerts = this.qrResult.querySelectorAll('.alert');
+                existingAlerts.forEach(alert => alert.remove());
 
-            // Add new alert
-            this.qrResult.insertBefore(alertDiv, this.qrResult.firstChild);
+                // Add new alert
+                this.qrResult.insertBefore(alertDiv, this.qrResult.firstChild);
 
-            // Auto-remove success/info alerts after 3 seconds
-            if (type === 'success' || type === 'info') {
-                setTimeout(() => {
-                    if (alertDiv.parentNode) {
-                        alertDiv.remove();
-                    }
-                }, 3000);
+                // Auto-remove success/info alerts after 3 seconds
+                if (type === 'success' || type === 'info') {
+                    setTimeout(() => {
+                        if (alertDiv.parentNode) {
+                            alertDiv.remove();
+                        }
+                    }, 3000);
+                }
             }
-        }
 
-        getAlertIcon(type) {
-            const icons = {
-                success: 'check-circle',
-                error: 'exclamation-triangle',
-                info: 'info-circle'
-            };
-            return icons[type] || 'info-circle';
-        }
+            getAlertIcon(type) {
+                const icons = {
+                    success: 'check-circle',
+                    error: 'exclamation-triangle',
+                    info: 'info-circle'
+                };
+                return icons[type] || 'info-circle';
+            }
             async convertShortUrl() {
-            const currentUrl = this.shareUrl.textContent;
-            if (!currentUrl) return;
+                const currentUrl = this.shareUrl.textContent;
+                if (!currentUrl) return;
 
-            this.shortenUrlBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Shortening...';
-            this.shortenUrlBtn.disabled = true;
+                this.shortenUrlBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Shortening...';
+                this.shortenUrlBtn.disabled = true;
 
-            try {
-                const shortUrl = await this.shortenWithIsGd(currentUrl);
+                try {
+                    const shortUrl = await this.shortenWithIsGd(currentUrl);
 
-                // Update display
-                this.shortShareUrl.textContent = shortUrl;
-                this.shortUrlContainer.classList.remove('hidden');
+                    // Update display
+                    this.shortShareUrl.textContent = shortUrl;
+                    this.shortUrlContainer.classList.remove('hidden');
 
-                // Regenerate QR with new short URL (better for scanning)
-                this.updateQR(shortUrl);
+                    // Regenerate QR with new short URL (better for scanning)
+                    this.updateQR(shortUrl);
 
-                this.showAlert('Short link generated and QR code updated!', 'success');
-            } catch (error) {
-                console.error('Shorten error:', error);
-                // Don't hide the button, just reset it so user can try again
-                this.showAlert('Auto-shortening failed. You can try again.', 'warning');
-            } finally {
-                this.shortenUrlBtn.innerHTML = '<i class="fas fa-compress-alt"></i> Regenerate Short Link';
-                this.shortenUrlBtn.disabled = false;
+                    this.showAlert('Short link generated and QR code updated!', 'success');
+                } catch (error) {
+                    console.error('Shorten error:', error);
+                    // Don't hide the button, just reset it so user can try again
+                    this.showAlert('Auto-shortening failed. You can try again.', 'warning');
+                } finally {
+                    this.shortenUrlBtn.innerHTML = '<i class="fas fa-compress-alt"></i> Regenerate Short Link';
+                    this.shortenUrlBtn.disabled = false;
+                }
             }
-        }
 
             async shortenWithIsGd(url) {
-            // is.gd via AllOrigins proxy
-            const apiEndpoint = `https://is.gd/create.php?format=simple&url=${encodeURIComponent(url)}`;
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiEndpoint)}`;
+                // is.gd via AllOrigins proxy
+                const apiEndpoint = `https://is.gd/create.php?format=simple&url=${encodeURIComponent(url)}`;
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiEndpoint)}`;
 
-            const response = await fetch(proxyUrl);
-            if (!response.ok) throw new Error('Network response was not ok');
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error('Network response was not ok');
 
-            const shortUrl = await response.text();
+                const shortUrl = await response.text();
 
-            if (shortUrl.includes('Error') || !shortUrl.startsWith('http')) {
-                throw new Error(shortUrl || `is.gd API failed`);
+                if (shortUrl.includes('Error') || !shortUrl.startsWith('http')) {
+                    throw new Error(shortUrl || `is.gd API failed`);
+                }
+
+                return shortUrl.trim();
             }
 
-            return shortUrl.trim();
-        }
+            updateQR(url) {
+                // Determine size based on original logic or fixed size
+                const size = 256;
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&format=png&margin=10`;
 
-        updateQR(url) {
-            // Determine size based on original logic or fixed size
-            const size = 256;
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&format=png&margin=10`;
+                const img = document.createElement('img');
+                img.src = qrUrl;
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                img.style.border = '2px solid #e2e8f0';
+                img.style.borderRadius = '8px';
+                img.style.background = 'white';
+                img.style.padding = '10px';
+                img.alt = 'QR Code';
 
-            const img = document.createElement('img');
-            img.src = qrUrl;
-            img.style.maxWidth = '100%';
-            img.style.height = 'auto';
-            img.style.border = '2px solid #e2e8f0';
-            img.style.borderRadius = '8px';
-            img.style.background = 'white';
-            img.style.padding = '10px';
-            img.alt = 'QR Code';
+                img.onload = () => {
+                    this.qrCodeContainer.innerHTML = '';
+                    this.qrCodeContainer.appendChild(img);
+                };
 
-            img.onload = () => {
-                this.qrCodeContainer.innerHTML = '';
-                this.qrCodeContainer.appendChild(img);
-            };
-
-            img.onerror = () => {
-                this.qrCodeContainer.innerHTML = '<div class="alert alert-error">Failed to load QR code image</div>';
-            };
-        }
+                img.onerror = () => {
+                    this.qrCodeContainer.innerHTML = '<div class="alert alert-error">Failed to load QR code image</div>';
+                };
+            }
         }
 
         // Initialize when DOM is loaded
