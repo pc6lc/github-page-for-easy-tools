@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="../styles/main.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body>
     <div class="container">
         <div class="nav-header">
@@ -19,12 +21,8 @@
         <main>
             <div class="form-group">
                 <label for="textInput">Enter your text or content:</label>
-                <textarea 
-                    id="textInput" 
-                    class="form-control" 
-                    placeholder="Enter any text, URL, or content you want to share via QR code..."
-                    rows="6"
-                ></textarea>
+                <textarea id="textInput" class="form-control"
+                    placeholder="Enter any text, URL, or content you want to share via QR code..." rows="6"></textarea>
             </div>
 
             <div class="btn-group">
@@ -41,7 +39,7 @@
                 <div class="qr-container">
                     <div id="qrcode"></div>
                     <p class="mt-2">Scan this QR code with your phone to view the content</p>
-                    
+
                     <div class="btn-group mt-2">
                         <button id="downloadBtn" class="btn btn-success">
                             <i class="fas fa-download"></i> Download QR Code
@@ -61,6 +59,9 @@
                         <i class="fas fa-info-circle"></i> The QR code contains this URL - click to copy:
                     </div>
                     <div id="shareUrl" class="copyable"></div>
+                    <button id="shortenUrlBtn" class="btn btn-sm btn-primary mt-2" style="display: none;">
+                        <i class="fas fa-compress-alt"></i> Shorten Link (is.gd)
+                    </button>
                 </div>
             </div>
         </main>
@@ -86,6 +87,7 @@
                 this.qrCodeContainer = document.getElementById('qrcode');
                 this.shareResult = document.getElementById('shareResult');
                 this.shareUrl = document.getElementById('shareUrl');
+                this.shortenUrlBtn = document.getElementById('shortenUrlBtn');
 
                 this.bindEvents();
                 this.loadFromParams();
@@ -106,8 +108,10 @@
                 this.generateBtn.addEventListener('click', () => this.generateQR());
                 this.clearBtn.addEventListener('click', () => this.clearAll());
                 this.downloadBtn.addEventListener('click', () => this.downloadQR());
+                this.downloadBtn.addEventListener('click', () => this.downloadQR());
                 this.testBtn.addEventListener('click', () => this.testViewer());
-                
+                this.shortenUrlBtn.addEventListener('click', () => this.convertShortUrl());
+
                 this.textInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter' && e.ctrlKey) {
                         this.generateQR();
@@ -120,7 +124,7 @@
 
             generateQR() {
                 const text = this.textInput.value.trim();
-                
+
                 if (!text) {
                     alert('Please enter some text to generate QR code');
                     return;
@@ -141,7 +145,7 @@
                 // Generate QR code that contains the URL (not the text)
                 const size = 256;
                 const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(shareableUrl)}&format=png&margin=10`;
-                
+
                 const img = document.createElement('img');
                 img.src = qrUrl;
                 img.style.maxWidth = '100%';
@@ -151,19 +155,20 @@
                 img.style.background = 'white';
                 img.style.padding = '10px';
                 img.alt = 'QR Code';
-                
+
                 img.onload = () => {
                     this.qrCodeContainer.innerHTML = '';
                     this.qrCodeContainer.appendChild(img);
                     this.qrResult.classList.remove('hidden');
-                    
+
                     // Auto-populate the shareable URL
                     this.shareUrl.textContent = shareableUrl;
                     this.shareResult.classList.remove('hidden');
-                    
+                    this.shortenUrlBtn.style.display = 'inline-block';
+
                     this.showAlert('QR code generated successfully! Scanning this will open the content viewer.', 'success');
                 };
-                
+
                 img.onerror = () => {
                     this.qrCodeContainer.innerHTML = '';
                     this.showAlert('Failed to generate QR code. Please check your internet connection and try again.', 'error');
@@ -176,6 +181,7 @@
                 this.qrResult.classList.add('hidden');
                 this.shareResult.classList.add('hidden');
                 this.shareUrl.textContent = '';
+                this.shortenUrlBtn.style.display = 'none';
             }
 
             testViewer() {
@@ -202,7 +208,7 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                
+
                 this.showAlert('QR code download started!', 'success');
             }
 
@@ -220,7 +226,7 @@
 
                 this.shareUrl.textContent = shareableUrl;
                 this.shareResult.classList.remove('hidden');
-                
+
                 this.showAlert('Shareable link generated! The QR code will open this URL.', 'info');
             }
 
@@ -246,14 +252,14 @@
                 alertDiv.className = `alert alert-${type}`;
                 alertDiv.innerHTML = `<i class="fas fa-${this.getAlertIcon(type)}"></i> ${message}`;
                 alertDiv.style.margin = '1rem 0';
-                
+
                 // Remove existing alerts
                 const existingAlerts = this.qrResult.querySelectorAll('.alert');
                 existingAlerts.forEach(alert => alert.remove());
-                
+
                 // Add new alert
                 this.qrResult.insertBefore(alertDiv, this.qrResult.firstChild);
-                
+
                 // Auto-remove success/info alerts after 3 seconds
                 if (type === 'success' || type === 'info') {
                     setTimeout(() => {
@@ -272,6 +278,72 @@
                 };
                 return icons[type] || 'info-circle';
             }
+            async convertShortUrl() {
+                const currentUrl = this.shareUrl.textContent;
+                if (!currentUrl) return;
+
+                // Prevent multiple clicks
+                if (this.shortenUrlBtn.disabled) return;
+
+                this.shortenUrlBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Shortening...';
+                this.shortenUrlBtn.disabled = true;
+
+                try {
+                    const shortUrl = await this.shortenWithIsGd(currentUrl);
+
+                    // Update display
+                    this.shareUrl.textContent = shortUrl;
+                    this.shortenUrlBtn.style.display = 'none'; // Hide button after success
+
+                    // Regenerate QR with new short URL
+                    this.updateQR(shortUrl);
+
+                    this.showAlert('Link shortened and QR code regenerated!', 'success');
+                } catch (error) {
+                    console.error('Shorten error:', error);
+                    this.showAlert('Failed to shorten URL: ' + error.message, 'error');
+                    this.shortenUrlBtn.innerHTML = '<i class="fas fa-compress-alt"></i> Shorten Link (is.gd)';
+                    this.shortenUrlBtn.disabled = false;
+                }
+            }
+
+            async shortenWithIsGd(url) {
+                // is.gd via AllOrigins proxy
+                const apiEndpoint = `https://is.gd/create.php?format=simple&url=${encodeURIComponent(url)}`;
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiEndpoint)}`;
+
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error('Network response was not ok');
+
+                const shortUrl = await response.text();
+
+                if (shortUrl.includes('Error') || !shortUrl.startsWith('http')) {
+                    throw new Error(shortUrl || `is.gd API failed`);
+                }
+
+                return shortUrl.trim();
+            }
+
+            updateQR(url) {
+                // Determine size based on original logic or fixed size
+                const size = 256;
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&format=png&margin=10`;
+
+                const img = document.createElement('img');
+                img.src = qrUrl;
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                img.style.border = '2px solid #e2e8f0';
+                img.style.borderRadius = '8px';
+                img.style.background = 'white';
+                img.style.padding = '10px';
+                img.alt = 'QR Code';
+
+                img.onload = () => {
+                    this.qrCodeContainer.innerHTML = '';
+                    this.qrCodeContainer.appendChild(img);
+                };
+            }
         }
 
         // Initialize when DOM is loaded
@@ -280,4 +352,5 @@
         });
     </script>
 </body>
+
 </html>
