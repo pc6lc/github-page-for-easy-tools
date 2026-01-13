@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Formatter - Easy Tools</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="nav-header">
+            <h1><i class="fas fa-brackets-curly"></i> JSON Formatter</h1>
+            <a href="../index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Back to Tools
+            </a>
+        </div>
+
+        <main>
+            <div class="form-group">
+                <label for="inputJson">Input JSON:</label>
+                <textarea 
+                    id="inputJson" 
+                    class="form-control" 
+                    placeholder="Enter JSON to format, validate, or minify..."
+                    rows="10"
+                ></textarea>
+            </div>
+
+            <div class="btn-group">
+                <button id="formatBtn" class="btn">
+                    <i class="fas fa-indent"></i> Format JSON
+                </button>
+                <button id="minifyBtn" class="btn btn-secondary">
+                    <i class="fas fa-compress"></i> Minify JSON
+                </button>
+                <button id="validateBtn" class="btn btn-secondary">
+                    <i class="fas fa-check-circle"></i> Validate JSON
+                </button>
+                <button id="clearBtn" class="btn btn-secondary">
+                    <i class="fas fa-eraser"></i> Clear
+                </button>
+            </div>
+
+            <div id="resultSection" class="result-section hidden">
+                <h3>Result</h3>
+                <div id="alertContainer"></div>
+                <textarea id="resultJson" class="form-control" readonly rows="15"></textarea>
+                <div class="btn-group mt-2">
+                    <button id="copyBtn" class="copy-btn">
+                        <i class="fas fa-copy"></i> Copy Result
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Easy Tools Collection | JSON Formatter</p>
+        </footer>
+    </div>
+
+    <script>
+        class JSONFormatter {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                this.inputJson = document.getElementById('inputJson');
+                this.formatBtn = document.getElementById('formatBtn');
+                this.minifyBtn = document.getElementById('minifyBtn');
+                this.validateBtn = document.getElementById('validateBtn');
+                this.clearBtn = document.getElementById('clearBtn');
+                this.copyBtn = document.getElementById('copyBtn');
+                this.resultSection = document.getElementById('resultSection');
+                this.resultJson = document.getElementById('resultJson');
+                this.alertContainer = document.getElementById('alertContainer');
+
+                this.bindEvents();
+            }
+
+            bindEvents() {
+                this.formatBtn.addEventListener('click', () => this.formatJson());
+                this.minifyBtn.addEventListener('click', () => this.minifyJson());
+                this.validateBtn.addEventListener('click', () => this.validateJson());
+                this.clearBtn.addEventListener('click', () => this.clearAll());
+                this.copyBtn.addEventListener('click', () => this.copyResult());
+            }
+
+            formatJson() {
+                const input = this.inputJson.value.trim();
+                
+                if (!input) {
+                    this.showAlert('Please enter some JSON to format', 'error');
+                    return;
+                }
+
+                try {
+                    const parsed = JSON.parse(input);
+                    const formatted = JSON.stringify(parsed, null, 2);
+                    this.displayResult(formatted, 'JSON formatted successfully!');
+                } catch (error) {
+                    this.showAlert('Invalid JSON: ' + error.message, 'error');
+                }
+            }
+
+            minifyJson() {
+                const input = this.inputJson.value.trim();
+                
+                if (!input) {
+                    this.showAlert('Please enter some JSON to minify', 'error');
+                    return;
+                }
+
+                try {
+                    const parsed = JSON.parse(input);
+                    const minified = JSON.stringify(parsed);
+                    this.displayResult(minified, 'JSON minified successfully!');
+                } catch (error) {
+                    this.showAlert('Invalid JSON: ' + error.message, 'error');
+                }
+            }
+
+            validateJson() {
+                const input = this.inputJson.value.trim();
+                
+                if (!input) {
+                    this.showAlert('Please enter some JSON to validate', 'error');
+                    return;
+                }
+
+                try {
+                    const parsed = JSON.parse(input);
+                    this.showAlert('✓ Valid JSON! The JSON is properly formatted.', 'success');
+                    
+                    // Show some info about the JSON
+                    const info = this.analyzeJson(parsed);
+                    this.displayResult(JSON.stringify(parsed, null, 2), 'JSON is valid! ' + info);
+                } catch (error) {
+                    this.showAlert('Invalid JSON: ' + error.message, 'error');
+                }
+            }
+
+            analyzeJson(obj) {
+                const type = Array.isArray(obj) ? 'Array' : typeof obj;
+                let info = `Type: ${type}`;
+                
+                if (Array.isArray(obj)) {
+                    info += `, Length: ${obj.length}`;
+                } else if (typeof obj === 'object' && obj !== null) {
+                    const keys = Object.keys(obj);
+                    info += `, Properties: ${keys.length}`;
+                }
+                
+                return info;
+            }
+
+            displayResult(result, message) {
+                this.resultJson.value = result;
+                this.resultSection.classList.remove('hidden');
+                this.showAlert(message, 'success');
+                
+                this.resultSection.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            clearAll() {
+                this.inputJson.value = '';
+                this.resultJson.value = '';
+                this.resultSection.classList.add('hidden');
+                this.clearAlerts();
+            }
+
+            async copyResult() {
+                try {
+                    await navigator.clipboard.writeText(this.resultJson.value);
+                    this.showAlert('Result copied to clipboard!', 'success');
+                } catch (err) {
+                    this.resultJson.select();
+                    document.execCommand('copy');
+                    this.showAlert('Result copied to clipboard!', 'success');
+                }
+            }
+
+            showAlert(message, type = 'info') {
+                this.clearAlerts();
+                
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${type}`;
+                alert.innerHTML = `<i class="fas fa-${this.getAlertIcon(type)}"></i> ${message}`;
+                
+                this.alertContainer.appendChild(alert);
+                
+                if (type === 'success' || type === 'info') {
+                    setTimeout(() => {
+                        if (alert.parentNode) {
+                            alert.remove();
+                        }
+                    }, 5000);
+                }
+            }
+
+            clearAlerts() {
+                this.alertContainer.innerHTML = '';
+            }
+
+            getAlertIcon(type) {
+                const icons = {
+                    success: 'check-circle',
+                    error: 'exclamation-triangle',
+                    info: 'info-circle'
+                };
+                return icons[type] || 'info-circle';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new JSONFormatter();
+        });
+    </script>
+</body>
+</html>

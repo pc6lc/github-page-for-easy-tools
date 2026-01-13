@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base64 Encoder/Decoder - Easy Tools</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="nav-header">
+            <h1><i class="fas fa-code"></i> Base64 Encoder/Decoder</h1>
+            <a href="../index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Back to Tools
+            </a>
+        </div>
+
+        <main>
+            <div class="form-group">
+                <label for="inputText">Input Text:</label>
+                <textarea 
+                    id="inputText" 
+                    class="form-control" 
+                    placeholder="Enter text to encode/decode..."
+                    rows="6"
+                ></textarea>
+            </div>
+
+            <div class="btn-group">
+                <button id="encodeBtn" class="btn">
+                    <i class="fas fa-lock"></i> Encode to Base64
+                </button>
+                <button id="decodeBtn" class="btn btn-secondary">
+                    <i class="fas fa-unlock"></i> Decode from Base64
+                </button>
+                <button id="clearBtn" class="btn btn-secondary">
+                    <i class="fas fa-eraser"></i> Clear
+                </button>
+            </div>
+
+            <div id="resultSection" class="result-section hidden">
+                <h3>Result</h3>
+                <div id="alertContainer"></div>
+                <textarea id="resultText" class="form-control" readonly rows="6"></textarea>
+                <div class="btn-group mt-2">
+                    <button id="copyBtn" class="copy-btn">
+                        <i class="fas fa-copy"></i> Copy Result
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Easy Tools Collection | Base64 Encoder/Decoder</p>
+        </footer>
+    </div>
+
+    <script src="../scripts/base64.js"></script>
+</body>
+</html>

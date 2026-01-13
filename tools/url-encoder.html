@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Encoder/Decoder - Easy Tools</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="nav-header">
+            <h1><i class="fas fa-link"></i> URL Encoder/Decoder</h1>
+            <a href="../index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Back to Tools
+            </a>
+        </div>
+
+        <main>
+            <div class="form-group">
+                <label for="inputText">Input URL or Text:</label>
+                <textarea 
+                    id="inputText" 
+                    class="form-control" 
+                    placeholder="Enter URL or text to encode/decode..."
+                    rows="6"
+                ></textarea>
+            </div>
+
+            <div class="btn-group">
+                <button id="encodeBtn" class="btn">
+                    <i class="fas fa-lock"></i> URL Encode
+                </button>
+                <button id="decodeBtn" class="btn btn-secondary">
+                    <i class="fas fa-unlock"></i> URL Decode
+                </button>
+                <button id="clearBtn" class="btn btn-secondary">
+                    <i class="fas fa-eraser"></i> Clear
+                </button>
+            </div>
+
+            <div id="resultSection" class="result-section hidden">
+                <h3>Result</h3>
+                <div id="alertContainer"></div>
+                <textarea id="resultText" class="form-control" readonly rows="6"></textarea>
+                <div class="btn-group mt-2">
+                    <button id="copyBtn" class="copy-btn">
+                        <i class="fas fa-copy"></i> Copy Result
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Easy Tools Collection | URL Encoder/Decoder</p>
+        </footer>
+    </div>
+
+    <script>
+        class URLTool {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                this.inputText = document.getElementById('inputText');
+                this.encodeBtn = document.getElementById('encodeBtn');
+                this.decodeBtn = document.getElementById('decodeBtn');
+                this.clearBtn = document.getElementById('clearBtn');
+                this.copyBtn = document.getElementById('copyBtn');
+                this.resultSection = document.getElementById('resultSection');
+                this.resultText = document.getElementById('resultText');
+                this.alertContainer = document.getElementById('alertContainer');
+
+                this.bindEvents();
+            }
+
+            bindEvents() {
+                this.encodeBtn.addEventListener('click', () => this.encodeURL());
+                this.decodeBtn.addEventListener('click', () => this.decodeURL());
+                this.clearBtn.addEventListener('click', () => this.clearAll());
+                this.copyBtn.addEventListener('click', () => this.copyResult());
+            }
+
+            encodeURL() {
+                const text = this.inputText.value.trim();
+                
+                if (!text) {
+                    this.showAlert('Please enter some text to encode', 'error');
+                    return;
+                }
+
+                try {
+                    const encoded = encodeURIComponent(text);
+                    this.displayResult(encoded, 'Text URL encoded successfully!');
+                } catch (error) {
+                    this.showAlert('Error encoding text: ' + error.message, 'error');
+                }
+            }
+
+            decodeURL() {
+                const text = this.inputText.value.trim();
+                
+                if (!text) {
+                    this.showAlert('Please enter URL encoded text to decode', 'error');
+                    return;
+                }
+
+                try {
+                    const decoded = decodeURIComponent(text);
+                    this.displayResult(decoded, 'URL decoded successfully!');
+                } catch (error) {
+                    this.showAlert('Error decoding URL: Invalid URL encoding', 'error');
+                }
+            }
+
+            displayResult(result, message) {
+                this.resultText.value = result;
+                this.resultSection.classList.remove('hidden');
+                this.showAlert(message, 'success');
+                
+                this.resultSection.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            clearAll() {
+                this.inputText.value = '';
+                this.resultText.value = '';
+                this.resultSection.classList.add('hidden');
+                this.clearAlerts();
+            }
+
+            async copyResult() {
+                try {
+                    await navigator.clipboard.writeText(this.resultText.value);
+                    this.showAlert('Result copied to clipboard!', 'success');
+                } catch (err) {
+                    this.resultText.select();
+                    document.execCommand('copy');
+                    this.showAlert('Result copied to clipboard!', 'success');
+                }
+            }
+
+            showAlert(message, type = 'info') {
+                this.clearAlerts();
+                
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${type}`;
+                alert.innerHTML = `<i class="fas fa-${this.getAlertIcon(type)}"></i> ${message}`;
+                
+                this.alertContainer.appendChild(alert);
+                
+                if (type === 'success' || type === 'info') {
+                    setTimeout(() => {
+                        if (alert.parentNode) {
+                            alert.remove();
+                        }
+                    }, 3000);
+                }
+            }
+
+            clearAlerts() {
+                this.alertContainer.innerHTML = '';
+            }
+
+            getAlertIcon(type) {
+                const icons = {
+                    success: 'check-circle',
+                    error: 'exclamation-triangle',
+                    info: 'info-circle'
+                };
+                return icons[type] || 'info-circle';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new URLTool();
+        });
+    </script>
+</body>
+</html>

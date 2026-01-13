@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator - Easy Tools</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="nav-header">
+            <h1><i class="fas fa-qrcode"></i> QR Code Generator</h1>
+            <a href="../index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Back to Tools
+            </a>
+        </div>
+
+        <main>
+            <div class="form-group">
+                <label for="textInput">Enter your text or content:</label>
+                <textarea 
+                    id="textInput" 
+                    class="form-control" 
+                    placeholder="Enter any text, URL, or content you want to share via QR code..."
+                    rows="6"
+                ></textarea>
+            </div>
+
+            <div class="btn-group">
+                <button id="generateBtn" class="btn">
+                    <i class="fas fa-qrcode"></i> Generate QR Code
+                </button>
+                <button id="clearBtn" class="btn btn-secondary">
+                    <i class="fas fa-eraser"></i> Clear
+                </button>
+            </div>
+
+            <div id="qrResult" class="result-section hidden">
+                <h3>Your QR Code</h3>
+                <div class="qr-container">
+                    <div id="qrcode"></div>
+                    <p class="mt-2">Scan this QR code with your phone to view the content</p>
+                    
+                    <div class="btn-group mt-2">
+                        <button id="downloadBtn" class="btn btn-success">
+                            <i class="fas fa-download"></i> Download QR Code
+                        </button>
+                        <button id="testBtn" class="btn btn-secondary">
+                            <i class="fas fa-external-link-alt"></i> Test Viewer
+                        </button>
+                    </div>
+                </div>
+
+                <div id="shareResult" class="mt-2">
+                    <div class="alert alert-info">
+                        <strong>This QR code contains a URL that opens your content in a mobile viewer.</strong><br>
+                        When scanned, it will automatically redirect to the viewer page below.
+                    </div>
+                    <div class="copy-hint">
+                        <i class="fas fa-info-circle"></i> The QR code contains this URL - click to copy:
+                    </div>
+                    <div id="shareUrl" class="copyable"></div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Easy Tools Collection | QR Code Generator</p>
+        </footer>
+    </div>
+
+    <script>
+        class QRGenerator {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                this.textInput = document.getElementById('textInput');
+                this.generateBtn = document.getElementById('generateBtn');
+                this.clearBtn = document.getElementById('clearBtn');
+                this.downloadBtn = document.getElementById('downloadBtn');
+                this.testBtn = document.getElementById('testBtn');
+                this.qrResult = document.getElementById('qrResult');
+                this.qrCodeContainer = document.getElementById('qrcode');
+                this.shareResult = document.getElementById('shareResult');
+                this.shareUrl = document.getElementById('shareUrl');
+
+                this.bindEvents();
+            }
+
+            bindEvents() {
+                this.generateBtn.addEventListener('click', () => this.generateQR());
+                this.clearBtn.addEventListener('click', () => this.clearAll());
+                this.downloadBtn.addEventListener('click', () => this.downloadQR());
+                this.testBtn.addEventListener('click', () => this.testViewer());
+                
+                this.textInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && e.ctrlKey) {
+                        this.generateQR();
+                    }
+                });
+
+                // Handle copyable URL click
+                this.shareUrl.addEventListener('click', () => this.copyToClipboard(this.shareUrl.textContent));
+            }
+
+            generateQR() {
+                const text = this.textInput.value.trim();
+                
+                if (!text) {
+                    alert('Please enter some text to generate QR code');
+                    return;
+                }
+
+                // Clear previous QR code
+                this.qrCodeContainer.innerHTML = '';
+                this.shareResult.classList.add('hidden');
+
+                // Show loading
+                this.qrCodeContainer.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary-color);"></i><br>Generating QR Code...</div>';
+
+                // Create the shareable URL that will display the content
+                const encodedText = encodeURIComponent(text);
+                const baseUrl = window.location.origin + window.location.pathname.replace('qr-generator.html', '');
+                const shareableUrl = `${baseUrl}viewer.html?content=${encodedText}`;
+
+                // Generate QR code that contains the URL (not the text)
+                const size = 256;
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(shareableUrl)}&format=png&margin=10`;
+                
+                const img = document.createElement('img');
+                img.src = qrUrl;
+                img.style.maxWidth = '100%';
+                img.style.height = 'auto';
+                img.style.border = '2px solid #e2e8f0';
+                img.style.borderRadius = '8px';
+                img.style.background = 'white';
+                img.style.padding = '10px';
+                img.alt = 'QR Code';
+                
+                img.onload = () => {
+                    this.qrCodeContainer.innerHTML = '';
+                    this.qrCodeContainer.appendChild(img);
+                    this.qrResult.classList.remove('hidden');
+                    
+                    // Auto-populate the shareable URL
+                    this.shareUrl.textContent = shareableUrl;
+                    this.shareResult.classList.remove('hidden');
+                    
+                    this.showAlert('QR code generated successfully! Scanning this will open the content viewer.', 'success');
+                };
+                
+                img.onerror = () => {
+                    this.qrCodeContainer.innerHTML = '';
+                    this.showAlert('Failed to generate QR code. Please check your internet connection and try again.', 'error');
+                };
+            }
+
+            clearAll() {
+                this.textInput.value = '';
+                this.qrCodeContainer.innerHTML = '';
+                this.qrResult.classList.add('hidden');
+                this.shareResult.classList.add('hidden');
+                this.shareUrl.textContent = '';
+            }
+
+            testViewer() {
+                const url = this.shareUrl.textContent;
+                if (!url) {
+                    alert('Please generate a QR code first');
+                    return;
+                }
+                window.open(url, '_blank');
+            }
+
+            downloadQR() {
+                const img = this.qrCodeContainer.querySelector('img');
+                if (!img) {
+                    alert('No QR code to download. Please generate a QR code first.');
+                    return;
+                }
+
+                // Create download link
+                const link = document.createElement('a');
+                link.download = 'qrcode.png';
+                link.href = img.src;
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                this.showAlert('QR code download started!', 'success');
+            }
+
+            generateShareableLink() {
+                const text = this.textInput.value.trim();
+                if (!text) {
+                    alert('Please generate a QR code first');
+                    return;
+                }
+
+                // Create a shareable URL that will display the content
+                const encodedText = encodeURIComponent(text);
+                const baseUrl = window.location.origin + window.location.pathname.replace('qr-generator.html', '');
+                const shareableUrl = `${baseUrl}viewer.html?content=${encodedText}`;
+
+                this.shareUrl.textContent = shareableUrl;
+                this.shareResult.classList.remove('hidden');
+                
+                this.showAlert('Shareable link generated! The QR code will open this URL.', 'info');
+            }
+
+            async copyToClipboard(text) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    this.showAlert('URL copied to clipboard!', 'success');
+                } catch (err) {
+                    // Fallback for browsers that don't support clipboard API
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    this.showAlert('URL copied to clipboard!', 'success');
+                }
+            }
+
+            showAlert(message, type = 'info') {
+                // Simple alert implementation
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type}`;
+                alertDiv.innerHTML = `<i class="fas fa-${this.getAlertIcon(type)}"></i> ${message}`;
+                alertDiv.style.margin = '1rem 0';
+                
+                // Remove existing alerts
+                const existingAlerts = this.qrResult.querySelectorAll('.alert');
+                existingAlerts.forEach(alert => alert.remove());
+                
+                // Add new alert
+                this.qrResult.insertBefore(alertDiv, this.qrResult.firstChild);
+                
+                // Auto-remove success/info alerts after 3 seconds
+                if (type === 'success' || type === 'info') {
+                    setTimeout(() => {
+                        if (alertDiv.parentNode) {
+                            alertDiv.remove();
+                        }
+                    }, 3000);
+                }
+            }
+
+            getAlertIcon(type) {
+                const icons = {
+                    success: 'check-circle',
+                    error: 'exclamation-triangle',
+                    info: 'info-circle'
+                };
+                return icons[type] || 'info-circle';
+            }
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new QRGenerator();
+        });
+    </script>
+</body>
+</html>

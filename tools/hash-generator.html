@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hash Generator - Easy Tools</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="nav-header">
+            <h1><i class="fas fa-hashtag"></i> Hash Generator</h1>
+            <a href="../index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Back to Tools
+            </a>
+        </div>
+
+        <main>
+            <div class="form-group">
+                <label for="inputText">Input Text:</label>
+                <textarea 
+                    id="inputText" 
+                    class="form-control" 
+                    placeholder="Enter text to generate hashes..."
+                    rows="6"
+                ></textarea>
+            </div>
+
+            <div class="btn-group">
+                <button id="generateBtn" class="btn">
+                    <i class="fas fa-hash"></i> Generate Hashes
+                </button>
+                <button id="clearBtn" class="btn btn-secondary">
+                    <i class="fas fa-eraser"></i> Clear
+                </button>
+            </div>
+
+            <div id="resultSection" class="result-section hidden">
+                <h3>Generated Hashes</h3>
+                <div id="alertContainer"></div>
+                <div id="hashResults"></div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Easy Tools Collection | Hash Generator</p>
+        </footer>
+    </div>
+
+    <script>
+        class HashGenerator {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                this.inputText = document.getElementById('inputText');
+                this.generateBtn = document.getElementById('generateBtn');
+                this.clearBtn = document.getElementById('clearBtn');
+                this.resultSection = document.getElementById('resultSection');
+                this.hashResults = document.getElementById('hashResults');
+                this.alertContainer = document.getElementById('alertContainer');
+
+                this.bindEvents();
+                this.addStyles();
+            }
+
+            addStyles() {
+                if (!document.getElementById('hash-styles')) {
+                    const style = document.createElement('style');
+                    style.id = 'hash-styles';
+                    style.textContent = `
+                        .hash-item {
+                            margin-bottom: 1rem;
+                            padding: 1rem;
+                            background: #f8fafc;
+                            border: 1px solid var(--border-color);
+                            border-radius: 8px;
+                        }
+                        .hash-label {
+                            font-weight: 600;
+                            color: var(--text-primary);
+                            margin-bottom: 0.5rem;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        }
+                        .hash-value {
+                            font-family: 'Courier New', monospace;
+                            font-size: 0.9rem;
+                            background: white;
+                            padding: 0.75rem;
+                            border: 1px solid #e2e8f0;
+                            border-radius: 6px;
+                            word-break: break-all;
+                            user-select: all;
+                            cursor: text;
+                            color: var(--text-primary);
+                        }
+                        .copy-hash-btn {
+                            background: var(--success-color);
+                            color: white;
+                            border: none;
+                            padding: 0.5rem;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 0.8rem;
+                            transition: background-color 0.3s ease;
+                        }
+                        .copy-hash-btn:hover {
+                            background: #047857;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+            }
+
+            bindEvents() {
+                this.generateBtn.addEventListener('click', () => this.generateHashes());
+                this.clearBtn.addEventListener('click', () => this.clearAll());
+            }
+
+            generateHashes() {
+                const text = this.inputText.value.trim();
+                
+                if (!text) {
+                    this.showAlert('Please enter some text to generate hashes', 'error');
+                    return;
+                }
+
+                try {
+                    const hashes = {
+                        'MD5': CryptoJS.MD5(text).toString(),
+                        'SHA1': CryptoJS.SHA1(text).toString(),
+                        'SHA256': CryptoJS.SHA256(text).toString(),
+                        'SHA512': CryptoJS.SHA512(text).toString()
+                    };
+
+                    this.displayHashes(hashes);
+                    this.showAlert('Hashes generated successfully!', 'success');
+                } catch (error) {
+                    this.showAlert('Error generating hashes: ' + error.message, 'error');
+                }
+            }
+
+            displayHashes(hashes) {
+                this.hashResults.innerHTML = '';
+
+                Object.entries(hashes).forEach(([algorithm, hash]) => {
+                    const hashItem = document.createElement('div');
+                    hashItem.className = 'hash-item';
+                    hashItem.innerHTML = `
+                        <div class="hash-label">
+                            <span>${algorithm}</span>
+                            <button class="copy-hash-btn" onclick="hashGenerator.copyHash('${hash}', '${algorithm}')">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                        <div class="hash-value">${hash}</div>
+                    `;
+                    this.hashResults.appendChild(hashItem);
+                });
+
+                this.resultSection.classList.remove('hidden');
+                this.resultSection.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            async copyHash(hash, algorithm) {
+                try {
+                    await navigator.clipboard.writeText(hash);
+                    this.showAlert(`${algorithm} hash copied to clipboard!`, 'success');
+                } catch (err) {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = hash;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    this.showAlert(`${algorithm} hash copied to clipboard!`, 'success');
+                }
+            }
+
+            clearAll() {
+                this.inputText.value = '';
+                this.hashResults.innerHTML = '';
+                this.resultSection.classList.add('hidden');
+                this.clearAlerts();
+            }
+
+            showAlert(message, type = 'info') {
+                this.clearAlerts();
+                
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${type}`;
+                alert.innerHTML = `<i class="fas fa-${this.getAlertIcon(type)}"></i> ${message}`;
+                
+                this.alertContainer.appendChild(alert);
+                
+                if (type === 'success' || type === 'info') {
+                    setTimeout(() => {
+                        if (alert.parentNode) {
+                            alert.remove();
+                        }
+                    }, 3000);
+                }
+            }
+
+            clearAlerts() {
+                this.alertContainer.innerHTML = '';
+            }
+
+            getAlertIcon(type) {
+                const icons = {
+                    success: 'check-circle',
+                    error: 'exclamation-triangle',
+                    info: 'info-circle'
+                };
+                return icons[type] || 'info-circle';
+            }
+        }
+
+        let hashGenerator;
+        document.addEventListener('DOMContentLoaded', () => {
+            hashGenerator = new HashGenerator();
+        });
+    </script>
+</body>
+</html>

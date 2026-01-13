@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UUID Generator - Easy Tools</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="nav-header">
+            <h1><i class="fas fa-fingerprint"></i> UUID Generator</h1>
+            <a href="../index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Back to Tools
+            </a>
+        </div>
+
+        <main>
+            <div class="form-group">
+                <label>Choose UUID Version:</label>
+                <select id="versionSelect" class="form-control">
+                    <option value="4">UUID v4 (Random)</option>
+                    <option value="1">UUID v1 (Timestamp)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="quantityInput">Number of UUIDs to generate:</label>
+                <input 
+                    type="number" 
+                    id="quantityInput" 
+                    class="form-control" 
+                    value="1" 
+                    min="1" 
+                    max="100"
+                >
+            </div>
+
+            <div class="btn-group">
+                <button id="generateBtn" class="btn">
+                    <i class="fas fa-magic"></i> Generate UUID(s)
+                </button>
+                <button id="clearBtn" class="btn btn-secondary">
+                    <i class="fas fa-eraser"></i> Clear
+                </button>
+            </div>
+
+            <div id="resultSection" class="result-section hidden">
+                <h3>Generated UUID(s)</h3>
+                <div id="alertContainer"></div>
+                <div id="uuidList"></div>
+                <div class="btn-group mt-2">
+                    <button id="copyAllBtn" class="copy-btn">
+                        <i class="fas fa-copy"></i> Copy All
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Easy Tools Collection | UUID Generator</p>
+        </footer>
+    </div>
+
+    <script src="../scripts/uuid-generator.js"></script>
+</body>
+</html>

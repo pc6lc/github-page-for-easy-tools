@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Viewer - Easy Tools</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Mobile-optimized viewer styles */
+        .viewer-container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        .content-display {
+            background: var(--surface-color);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: var(--shadow-md);
+            position: relative;
+        }
+        
+        .content-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: var(--text-primary);
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            user-select: all;
+            cursor: pointer;
+            min-height: 3rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+        
+        .content-text:hover {
+            background: #e2e8f0;
+            border-color: var(--primary-color);
+        }
+        
+        .copy-instruction {
+            text-align: center;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, #dbeafe, #e0e7ff);
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .copy-instruction i {
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            margin-right: 0.5rem;
+        }
+        
+        .mobile-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 1.5rem;
+        }
+        
+        .floating-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--success-color);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .floating-notification.show {
+            transform: translateX(0);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-secondary);
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--border-color);
+            margin-bottom: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .viewer-container {
+                padding: 0.5rem;
+            }
+            
+            .content-display {
+                margin: 1rem 0;
+                padding: 1.5rem;
+            }
+            
+            .mobile-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="viewer-container">
+        <div class="nav-header">
+            <h1><i class="fas fa-eye"></i> Content Viewer</h1>
+            <a href="../index.html" class="back-btn">
+                <i class="fas fa-home"></i> Tools Home
+            </a>
+        </div>
+
+        <main>
+            <div id="contentContainer">
+                <!-- Content will be loaded here -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Floating notification -->
+    <div id="notification" class="floating-notification">
+        <i class="fas fa-check-circle"></i>
+        <span id="notificationText">Content copied to clipboard!</span>
+    </div>
+
+    <script>
+        class ContentViewer {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                this.contentContainer = document.getElementById('contentContainer');
+                this.notification = document.getElementById('notification');
+                this.notificationText = document.getElementById('notificationText');
+                
+                this.loadContent();
+            }
+
+            loadContent() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const content = urlParams.get('content');
+
+                if (content) {
+                    this.displayContent(decodeURIComponent(content));
+                } else {
+                    this.displayEmptyState();
+                }
+            }
+
+            displayContent(content) {
+                this.contentContainer.innerHTML = `
+                    <div class="copy-instruction">
+                        <i class="fas fa-touch"></i>
+                        <strong>Tap the text below to copy it to your clipboard</strong>
+                    </div>
+                    
+                    <div class="content-display">
+                        <div class="content-text" id="contentText">${this.escapeHtml(content)}</div>
+                    </div>
+                    
+                    <div class="mobile-actions">
+                        <button class="btn" onclick="contentViewer.copyContent()">
+                            <i class="fas fa-copy"></i> Copy to Clipboard
+                        </button>
+                        <button class="btn btn-secondary" onclick="contentViewer.shareContent()">
+                            <i class="fas fa-share"></i> Share
+                        </button>
+                    </div>
+                `;
+
+                // Add click event to content text
+                const contentText = document.getElementById('contentText');
+                contentText.addEventListener('click', () => this.copyContent());
+                contentText.addEventListener('touchend', () => this.copyContent());
+            }
+
+            displayEmptyState() {
+                this.contentContainer.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <h2>No Content Found</h2>
+                        <p>This link doesn't contain any content to display.</p>
+                        <p>Please check the QR code or link and try again.</p>
+                    </div>
+                `;
+            }
+
+            async copyContent() {
+                const contentText = document.getElementById('contentText');
+                if (!contentText) return;
+
+                const text = contentText.textContent;
+                
+                try {
+                    if (navigator.clipboard) {
+                        await navigator.clipboard.writeText(text);
+                    } else {
+                        // Fallback for older browsers
+                        const textArea = document.createElement('textarea');
+                        textArea.value = text;
+                        textArea.style.position = 'fixed';
+                        textArea.style.opacity = '0';
+                        document.body.appendChild(textArea);
+                        textArea.focus();
+                        textArea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                    }
+                    
+                    this.showNotification('Content copied to clipboard!');
+                } catch (err) {
+                    console.error('Failed to copy text:', err);
+                    this.showNotification('Failed to copy content', 'error');
+                }
+            }
+
+            shareContent() {
+                const contentText = document.getElementById('contentText');
+                if (!contentText) return;
+
+                const text = contentText.textContent;
+                
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'Shared Content',
+                        text: text
+                    }).catch(err => {
+                        console.error('Error sharing:', err);
+                    });
+                } else {
+                    // Fallback - copy to clipboard
+                    this.copyContent();
+                }
+            }
+
+            showNotification(message, type = 'success') {
+                this.notificationText.textContent = message;
+                this.notification.classList.add('show');
+                
+                setTimeout(() => {
+                    this.notification.classList.remove('show');
+                }, 3000);
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Initialize when DOM is loaded
+        let contentViewer;
+        document.addEventListener('DOMContentLoaded', () => {
+            contentViewer = new ContentViewer();
+        });
+    </script>
+</body>
+</html>
