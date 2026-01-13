@@ -88,6 +88,18 @@
                 this.shareUrl = document.getElementById('shareUrl');
 
                 this.bindEvents();
+                this.loadFromParams();
+            }
+
+            loadFromParams() {
+                // Check if URL has text parameter (from URL shortener)
+                const urlParams = new URLSearchParams(window.location.search);
+                const textParam = urlParams.get('text');
+                if (textParam) {
+                    this.textInput.value = decodeURIComponent(textParam);
+                    // Auto-generate QR code if text is provided
+                    setTimeout(() => this.generateQR(), 500);
+                }
             }
 
             bindEvents() {

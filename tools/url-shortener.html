@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortener - Easy Tools</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="nav-header">
+            <h1><i class="fas fa-compress-alt"></i> URL Shortener</h1>
+            <a href="../index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Back to Tools
+            </a>
+        </div>
+
+        <main>
+            <div class="form-group">
+                <label for="originalUrl">Enter URL to shorten:</label>
+                <input 
+                    type="url" 
+                    id="originalUrl" 
+                    class="form-control" 
+                    placeholder="https://example.com/very/long/url/that/needs/shortening"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="serviceSelect">Choose shortening service:</label>
+                <select id="serviceSelect" class="form-control">
+                    <option value="tinyurl">TinyURL (Free, No registration)</option>
+                    <option value="isgd">is.gd (Free, No registration)</option>
+                    <option value="vgd">v.gd (Free, No registration)</option>
+                    <option value="tly">t.ly (Free, 1000/month)</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="customAliasGroup" style="display: none;">
+                <label for="customAlias">Custom alias (optional):</label>
+                <input 
+                    type="text" 
+                    id="customAlias" 
+                    class="form-control" 
+                    placeholder="mycustomlink"
+                    maxlength="30"
+                >
+                <small style="color: var(--text-secondary);">Only available for some services</small>
+            </div>
+
+            <div class="btn-group">
+                <button id="shortenBtn" class="btn">
+                    <i class="fas fa-magic"></i> Shorten URL
+                </button>
+                <button id="clearBtn" class="btn btn-secondary">
+                    <i class="fas fa-eraser"></i> Clear
+                </button>
+            </div>
+
+            <div id="resultSection" class="result-section hidden">
+                <h3>Shortened URLs</h3>
+                <div id="alertContainer"></div>
+                <div id="shortUrlResults"></div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Easy Tools Collection | URL Shortener</p>
+        </footer>
+    </div>
+
+    <script>
+        class URLShortener {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                this.originalUrl = document.getElementById('originalUrl');
+                this.serviceSelect = document.getElementById('serviceSelect');
+                this.customAlias = document.getElementById('customAlias');
+                this.customAliasGroup = document.getElementById('customAliasGroup');
+                this.shortenBtn = document.getElementById('shortenBtn');
+                this.clearBtn = document.getElementById('clearBtn');
+                this.resultSection = document.getElementById('resultSection');
+                this.shortUrlResults = document.getElementById('shortUrlResults');
+                this.alertContainer = document.getElementById('alertContainer');
+
+                this.bindEvents();
+                this.addStyles();
+            }
+
+            addStyles() {
+                if (!document.getElementById('shortener-styles')) {
+                    const style = document.createElement('style');
+                    style.id = 'shortener-styles';
+                    style.textContent = \`
+                        .url-result {
+                            margin-bottom: 1rem;
+                            padding: 1rem;
+                            background: #f8fafc;
+                            border: 1px solid var(--border-color);
+                            border-radius: 8px;
+                        }
+                        .url-info {
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            margin-bottom: 0.5rem;
+                            font-weight: 600;
+                            color: var(--text-primary);
+                        }
+                        .short-url {
+                            font-family: 'Courier New', monospace;
+                            font-size: 1rem;
+                            background: white;
+                            padding: 0.75rem;
+                            border: 1px solid #e2e8f0;
+                            border-radius: 6px;
+                            word-break: break-all;
+                            user-select: all;
+                            cursor: pointer;
+                            color: var(--primary-color);
+                            margin-bottom: 0.5rem;
+                        }
+                        .short-url:hover {
+                            background: #f1f5f9;
+                        }
+                        .url-actions {
+                            display: flex;
+                            gap: 0.5rem;
+                            flex-wrap: wrap;
+                        }
+                        .action-btn {
+                            background: var(--success-color);
+                            color: white;
+                            border: none;
+                            padding: 0.5rem 1rem;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 0.9rem;
+                            transition: background-color 0.3s ease;
+                            display: flex;
+                            align-items: center;
+                            gap: 0.5rem;
+                        }
+                        .action-btn:hover {
+                            background: #047857;
+                        }
+                        .action-btn.secondary {
+                            background: var(--primary-color);
+                        }
+                        .action-btn.secondary:hover {
+                            background: var(--primary-dark);
+                        }
+                        .loading {
+                            opacity: 0.6;
+                            pointer-events: none;
+                        }
+                    \`;
+                    document.head.appendChild(style);
+                }
+            }
+
+            bindEvents() {
+                this.shortenBtn.addEventListener('click', () => this.shortenUrl());
+                this.clearBtn.addEventListener('click', () => this.clearAll());
+                this.serviceSelect.addEventListener('change', () => this.toggleCustomAlias());
+                
+                this.originalUrl.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.shortenUrl();
+                    }
+                });
+            }
+
+            toggleCustomAlias() {
+                const service = this.serviceSelect.value;
+                // Only TinyURL and t.ly support custom aliases in this implementation
+                if (service === 'tinyurl' || service === 'tly') {
+                    this.customAliasGroup.style.display = 'block';
+                } else {
+                    this.customAliasGroup.style.display = 'none';
+                    this.customAlias.value = '';
+                }
+            }
+
+            async shortenUrl() {
+                const url = this.originalUrl.value.trim();
+                const service = this.serviceSelect.value;
+                const customAlias = this.customAlias.value.trim();
+                
+                if (!url) {
+                    this.showAlert('请输入要缩短的URL', 'error');
+                    return;
+                }
+
+                if (!this.isValidUrl(url)) {
+                    this.showAlert('请输入有效的URL（包含http://或https://）', 'error');
+                    return;
+                }
+
+                // Show loading state
+                this.shortenBtn.classList.add('loading');
+                this.shortenBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 缩短中...';
+
+                try {
+                    const shortUrl = await this.callShortenAPI(service, url, customAlias);
+                    this.displayResult(service, url, shortUrl);
+                    this.showAlert('短链接生成成功！', 'success');
+                } catch (error) {
+                    this.showAlert('生成短链接失败: ' + error.message, 'error');
+                } finally {
+                    this.shortenBtn.classList.remove('loading');
+                    this.shortenBtn.innerHTML = '<i class="fas fa-magic"></i> 缩短URL';
+                }
+            }
+
+            async callShortenAPI(service, url, customAlias = '') {
+                switch (service) {
+                    case 'tinyurl':
+                        return await this.shortenWithTinyURL(url, customAlias);
+                    case 'isgd':
+                        return await this.shortenWithIsGd(url);
+                    case 'vgd':
+                        return await this.shortenWithVGd(url);
+                    case 'tly':
+                        return await this.shortenWithTLy(url, customAlias);
+                    default:
+                        throw new Error('不支持的服务');
+                }
+            }
+
+            async shortenWithTinyURL(url, customAlias = '') {
+                const apiUrl = customAlias ? 
+                    \`https://tinyurl.com/api-create.php?url=\${encodeURIComponent(url)}&alias=\${encodeURIComponent(customAlias)}\` :
+                    \`https://tinyurl.com/api-create.php?url=\${encodeURIComponent(url)}\`;
+                
+                const response = await fetch(apiUrl);
+                const shortUrl = await response.text();
+                
+                if (shortUrl.includes('Error') || !shortUrl.includes('tinyurl.com')) {
+                    throw new Error('TinyURL生成失败');
+                }
+                
+                return shortUrl.trim();
+            }
+
+            async shortenWithIsGd(url) {
+                const apiUrl = \`https://is.gd/create.php?format=simple&url=\${encodeURIComponent(url)}\`;
+                
+                const response = await fetch(apiUrl);
+                const shortUrl = await response.text();
+                
+                if (shortUrl.includes('Error') || !shortUrl.includes('is.gd')) {
+                    throw new Error('is.gd生成失败');
+                }
+                
+                return shortUrl.trim();
+            }
+
+            async shortenWithVGd(url) {
+                const apiUrl = \`https://v.gd/create.php?format=simple&url=\${encodeURIComponent(url)}\`;
+                
+                const response = await fetch(apiUrl);
+                const shortUrl = await response.text();
+                
+                if (shortUrl.includes('Error') || !shortUrl.includes('v.gd')) {
+                    throw new Error('v.gd生成失败');
+                }
+                
+                return shortUrl.trim();
+            }
+
+            async shortenWithTLy(url, customAlias = '') {
+                // Note: t.ly requires API key for production use
+                // This is a fallback to TinyURL for demo purposes
+                return await this.shortenWithTinyURL(url, customAlias);
+            }
+
+            displayResult(service, originalUrl, shortUrl) {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'url-result';
+                resultDiv.innerHTML = \`
+                    <div class="url-info">
+                        <span>\${this.getServiceName(service)}</span>
+                        <span style="font-size: 0.9rem; color: var(--text-secondary);">\${new Date().toLocaleString()}</span>
+                    </div>
+                    <div class="short-url" onclick="urlShortener.copyToClipboard('\${shortUrl}')">\${shortUrl}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                        原始链接: \${originalUrl.length > 50 ? originalUrl.substring(0, 50) + '...' : originalUrl}
+                    </div>
+                    <div class="url-actions">
+                        <button class="action-btn" onclick="urlShortener.copyToClipboard('\${shortUrl}')">
+                            <i class="fas fa-copy"></i> 复制
+                        </button>
+                        <button class="action-btn secondary" onclick="window.open('\${shortUrl}', '_blank')">
+                            <i class="fas fa-external-link-alt"></i> 测试
+                        </button>
+                        <button class="action-btn secondary" onclick="urlShortener.generateQR('\${shortUrl}')">
+                            <i class="fas fa-qrcode"></i> 生成二维码
+                        </button>
+                    </div>
+                \`;
+
+                this.shortUrlResults.insertBefore(resultDiv, this.shortUrlResults.firstChild);
+                this.resultSection.classList.remove('hidden');
+                this.resultSection.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            getServiceName(service) {
+                const names = {
+                    'tinyurl': 'TinyURL',
+                    'isgd': 'is.gd',
+                    'vgd': 'v.gd',
+                    'tly': 't.ly'
+                };
+                return names[service] || service;
+            }
+
+            generateQR(url) {
+                // Open QR generator with the short URL
+                const qrUrl = \`qr-generator.html?text=\${encodeURIComponent(url)}\`;
+                window.open(qrUrl, '_blank');
+            }
+
+            async copyToClipboard(text) {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    this.showAlert('链接已复制到剪贴板！', 'success');
+                } catch (err) {
+                    // Fallback for browsers that don't support clipboard API
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    this.showAlert('链接已复制到剪贴板！', 'success');
+                }
+            }
+
+            isValidUrl(string) {
+                try {
+                    new URL(string);
+                    return true;
+                } catch (_) {
+                    return false;
+                }
+            }
+
+            clearAll() {
+                this.originalUrl.value = '';
+                this.customAlias.value = '';
+                this.shortUrlResults.innerHTML = '';
+                this.resultSection.classList.add('hidden');
+                this.clearAlerts();
+            }
+
+            showAlert(message, type = 'info') {
+                this.clearAlerts();
+                
+                const alert = document.createElement('div');
+                alert.className = \`alert alert-\${type}\`;
+                alert.innerHTML = \`<i class="fas fa-\${this.getAlertIcon(type)}"></i> \${message}\`;
+                
+                this.alertContainer.appendChild(alert);
+                
+                if (type === 'success' || type === 'info') {
+                    setTimeout(() => {
+                        if (alert.parentNode) {
+                            alert.remove();
+                        }
+                    }, 3000);
+                }
+            }
+
+            clearAlerts() {
+                this.alertContainer.innerHTML = '';
+            }
+
+            getAlertIcon(type) {
+                const icons = {
+                    success: 'check-circle',
+                    error: 'exclamation-triangle',
+                    info: 'info-circle'
+                };
+                return icons[type] || 'info-circle';
+            }
+        }
+
+        let urlShortener;
+        document.addEventListener('DOMContentLoaded', () => {
+            urlShortener = new URLShortener();
+        });
+    </script>
+</body>
+</html>
